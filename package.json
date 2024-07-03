@@ -9,9 +9,19 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@nextui-org/date-picker": "^2.1.2",
+    "@nextui-org/react": "^2.4.2",
+    "@nextui-org/system": "^2.2.2",
+    "@nextui-org/theme": "^2.2.6",
+    "date-fns": "^3.6.0",
+    "framer-motion": "^11.2.12",
+    "moment": "^2.30.1",
+    "next": "14.2.4",
     "react": "^18",
+    "react-big-calendar": "^1.13.0",
+    "react-datepicker": "^7.2.0",
     "react-dom": "^18",
-    "next": "14.2.4"
+    "react-modal": "^3.16.1"
   },
   "devDependencies": {
     "postcss": "^8",

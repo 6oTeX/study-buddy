@@ -1,113 +1,164 @@
-import Image from "next/image";
+// src/app/page.js
+
+"use client";
+
+import { useState } from 'react';
+import { parseISO, differenceInDays, formatDistanceToNow, formatDistance, isPast } from 'date-fns';
+import Layout from './components/Layout';
+import { useTasks } from './context/TaskContext';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+const localizer = momentLocalizer(moment);
 
 export default function Home() {
+  const { tasks, toggleCompleteTask, deleteTask, addTask } = useTasks();
+  const [currentView, setCurrentView] = useState('month');
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [newTask, setNewTask] = useState('');
+  const [newDate, setNewDate] = useState(new Date());
+  const [newTime, setNewTime] = useState(new Date());
+  const [newSummary, setNewSummary] = useState('');
+  const [newMotivation, setNewMotivation] = useState('');
+
+  const events = tasks.map((task, index) => ({
+    id: index,
+    title: task.name,
+    start: parseISO(task.deadline),
+    end: parseISO(task.deadline),
+    allDay: false,
+    resource: task,
+  }));
+
+  const getTaskStatusLabel = (deadline, completed) => {
+    if (completed) {
+      return <span className="px-3 py-1 text-xs text-blue-800 bg-blue-200 rounded-full">Completed</span>;
+    }
+
+    const deadlineDate = new Date(deadline);
+    if (isPast(deadlineDate)) {
+      return <span className="px-3 py-1 text-xs text-red-800 bg-red-200 rounded-full">Passed</span>;
+    }
+    if (differenceInDays(deadlineDate, new Date()) <= 1) {
+      return <span className="px-3 py-1 text-xs text-yellow-800 bg-yellow-200 rounded-full">Urgent</span>;
+    }
+    return <span className="px-3 py-1 text-xs text-green-800 bg-green-200 rounded-full">Normal</span>;
+  };
+  
+  const eventStyleGetter = (event) => {
+    const now = new Date();
+    const deadline = new Date(event.resource.deadline);
+    let backgroundColor = '#3174ad'; // default color
+    if (event.resource.completed) {
+      backgroundColor = '#d1e7dd';
+    } else if (deadline < now) {
+      backgroundColor = '#f8d7da';
+    } else if (differenceInDays(deadline, now) <= 1) {
+      backgroundColor = '#fff3cd';
+    } else {
+      backgroundColor = '#cfe2ff';
+    }
+    return {
+      style: {
+        backgroundColor,
+        borderRadius: '5px',
+        opacity: 0.8,
+        color: 'black',
+        border: '0px',
+        display: 'block',
+      },
+    };
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <Layout>
+      <div className='flex'>
+        <div className='w-6/12'>
+            <div className="p-6 w-fit">
+        <h1 className="mb-4 text-2xl font-bold">Study Buddy</h1>
+        <h2 className="mb-2 text-xl font-semibold">Dagelijks Overzicht</h2>
+        <div className="flex justify-center align-middle">
+          <ul className="p-4 bg-white rounded-lg shadow">
+            {tasks.map((task, index) => (
+              <li key={index} className={`flex items-center justify-between mb-2 ${task.completed ? 'line-through' : ''}`}>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    checked={task.completed}
+                    onChange={() => toggleCompleteTask(index)}
+                    className="w-4 h-4 mr-2 text-blue-600 bg-gray-100 border-gray-300 rounded-xl dark:bg-gray-600 dark:border-gray-500"
+                  />
+                  <div>
+                    <span className="font-semibold">{task.name}</span> - {formatDistanceToNow(new Date(task.deadline), { addSuffix: true })} om {new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  {getTaskStatusLabel(task.deadline, task.completed)}
+                  <button className="ml-2 text-red-500 hover:text-red-700" onClick={() => deleteTask(index)}>Verwijderen</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <button 
+          className="fixed bottom-4 right-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+          onClick={() => setModalIsOpen(true)}
+        >
+          Add Task
+        </button>
+
+      </div>
+      </div>
+      <div className="w-6/12 p-6">
+        <h1 className="mb-4 text-2xl font-bold">Study Buddy</h1>
+        <h2 className="mb-2 text-xl font-semibold">Dagelijks Overzicht</h2>
+        <div className="flex justify-center mb-4 space-x-2">
+          <button 
+            onClick={() => setCurrentView('month')} 
+            className={`px-3 py-1 rounded-md ${currentView === 'month' ? 'bg-blue-500 text-white' : 'bg-blue-700 text-white hover:bg-blue-600'}`}
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            Month
+          </button>
+          <button 
+            onClick={() => setCurrentView('week')} 
+            className={`px-3 py-1 rounded-md ${currentView === 'week' ? 'bg-blue-500 text-white' : 'bg-blue-700 text-white hover:bg-blue-600'}`}
+          >
+            Week
+          </button>
+          <button 
+            onClick={() => setCurrentView('day')} 
+            className={`px-3 py-1 rounded-md ${currentView === 'day' ? 'bg-blue-500 text-white' : 'bg-blue-700 text-white hover:bg-blue-600'}`}
+          >
+            Day
+          </button>
+        </div>
+        <div className="mt-6 h-96">
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%' }}
+            eventPropGetter={eventStyleGetter}
+            view={currentView}
+            onView={setCurrentView}
+            step={60}
+            showMultiDayTimes
+            selectable
+            toolbar={true}
+            popup={true}
+            components={{
+              toolbar: (props) => (
+                <div className="flex items-center justify-center p-2 text-white bg-blue-700 rounded-md">
+                  <span className="text-lg">{props.label}</span>
+                </div>
+              ),
+            }}
+          />
         </div>
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
       </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </Layout>
   );
 }
